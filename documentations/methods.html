@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backend Method Definitions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+    body {
+        font-family: 'Lexend', sans-serif;
+        line-height: 2.2;
+        color: #2c3e50;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 40px;
+        background-color: #ffffff;
+    }
+    h1 {
+        font-size: 2.8rem;
+        font-weight: 700;
+        color: #1a252f;
+        margin-bottom: 3rem;
+        text-align: center;
+    }
+    h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-top: 5rem;
+        margin-bottom: 2rem;
+    }
+    h3 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #34495e;
+        margin-top: 2rem;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 4rem;
+    }
+    th, td {
+        padding: 35px 25px;
+        text-align: left;
+        vertical-align: top;
+        border: none;
+    }
+    th {
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #1a252f;
+        padding-bottom: 15px;
+    }
+    td {
+        font-weight: 300;
+    }
+    .key-point {
+        font-weight: 700;
+        color: #2980b9;
+    }
+    .tips-section {
+        background-color: #f8f9fa;
+        padding: 40px 50px;
+        border-radius: 16px;
+        margin-top: 3rem;
+        margin-bottom: 5rem;
+    }
+    .tips-section h3 {
+        margin-top: 0;
+        color: #27ae60;
+    }
+    ul, ol {
+        padding-left: 20px;
+        margin-bottom: 2rem;
+    }
+    li {
+        margin-bottom: 15px;
+        font-weight: 300;
+    }
+    .code-block {
+        font-family: 'Courier New', Courier, monospace;
+        background-color: #ecf0f1;
+        padding: 30px;
+        border-radius: 12px;
+        white-space: pre-wrap;
+        line-height: 1.6;
+        margin: 30px 0;
+        color: #2c3e50;
+    }
+</style>
+</head>
+<body>
+
+    <h1>Backend Method Definitions</h1>
+
+    <h2>1. Member Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">registerMember(memberData)</span></td>
+                <td><span class="key-point">{firstName, lastName, address, phone, email, membershipType}</span></td>
+                <td>memberId</td>
+                <td>Insert into Member. Check email uniqueness. Set membership_date = today. Default membership_type = 'regular'. Return new member_id.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getMemberProfile(memberId)</span></td>
+                <td><span class="key-point">memberId</span></td>
+                <td>Member object</td>
+                <td>Select from Member where member_id = ?. Include current loans count and total unpaid fines.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">updateMember(memberId, updatedData)</span></td>
+                <td><span class="key-point">memberId, updatedFields</span></td>
+                <td>boolean</td>
+                <td>Update allowed fields (address, phone, email). Enforce email uniqueness.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">deactivateMember(memberId)</span></td>
+                <td><span class="key-point">memberId</span></td>
+                <td>boolean</td>
+                <td>Only if no active loans and no unpaid fines. Soft delete (add active flag) or physically remove if allowed.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getMemberLoans(memberId, includeHistory)</span></td>
+                <td><span class="key-point">memberId, includeHistory (bool)</span></td>
+                <td>list of Loan objects</td>
+                <td>If includeHistory=false, return only open loans (return_date IS NULL). Else return all loans for that member.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getMemberFines(memberId, unpaidOnly)</span></td>
+                <td><span class="key-point">memberId, unpaidOnly</span></td>
+                <td>list of Fine objects</td>
+                <td>Join Loan and Fine. If unpaidOnly=true, filter where paid_status = FALSE.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">payFine(fineId, amountPaid)</span></td>
+                <td><span class="key-point">fineId, amountPaid</span></td>
+                <td>boolean</td>
+                <td>Update paid_status = TRUE if amountPaid >= fine.amount. Optionally record payment date.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Member Service:</h3>
+        <ul>
+            <li>Hash passwords if adding authentication (not in current schema; extend with password_hash).</li>
+            <li>Use database transactions when updating member data and related fines.</li>
+            <li>Index email for quick lookup.</li>
+        </ul>
+    </div>
+
+    <h2>2. Catalog (Book / Author / Category) Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">addBook(bookData, authorIds, categoryIds)</span></td>
+                <td><span class="key-point">{isbn, title, edition, publicationYear, publisherId, description}, authorIds[], categoryIds[]</span></td>
+                <td>bookId</td>
+                <td>Insert into Book. Then insert into Book_Author for each authorId. Insert into Book_Category for each categoryId.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">updateBook(bookId, updatedBookData)</span></td>
+                <td><span class="key-point">bookId, updatedFields</span></td>
+                <td>boolean</td>
+                <td>Update Book table. Changing authors/categories requires separate methods.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">deleteBook(bookId)</span></td>
+                <td><span class="key-point">bookId</span></td>
+                <td>boolean</td>
+                <td>Only if no copies exist (i.e., SELECT COUNT(*) FROM Book_Copy WHERE book_id = ? = 0). Otherwise return error.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">searchBooks(searchCriteria)</span></td>
+                <td><span class="key-point">{title, author, isbn, category, publicationYear}</span></td>
+                <td>list of Book objects</td>
+                <td>Dynamic SQL. Use LIKE for partial title/author name. Join with Book_Author and Author for author search. Join with Book_Category and Category for category.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getBookDetails(bookId)</span></td>
+                <td><span class="key-point">bookId</span></td>
+                <td>Book object with authors, categories, and total copy count per branch</td>
+                <td>SELECT from Book + aggregated subqueries.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">addAuthor(authorData)</span></td>
+                <td><span class="key-point">{firstName, lastName, biography}</span></td>
+                <td>authorId</td>
+                <td>Insert into Author. Return new ID.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">listAllAuthors()</span></td>
+                <td><span class="key-point">none</span></td>
+                <td>list of Author objects</td>
+                <td>Simple SELECT.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">addCategory(categoryName)</span></td>
+                <td><span class="key-point">name</span></td>
+                <td>categoryId</td>
+                <td>Insert into Category. Check for duplicate name.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getBooksByCategory(categoryId)</span></td>
+                <td><span class="key-point">categoryId</span></td>
+                <td>list of Book objects</td>
+                <td>Join Book_Category + Book.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Catalog Service:</h3>
+        <ul>
+            <li>Implement pagination (offset, limit) for searchBooks and listAllAuthors.</li>
+            <li>Use full‑text indexes on title, description for faster search.</li>
+            <li>Validate ISBN format (e.g., ISBN‑10 or ISBN‑13) before insertion.</li>
+        </ul>
+    </div>
+
+    <h2>3. Inventory (Book Copy & Branch) Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">addBookCopy(bookId, branchId, acquisitionDate)</span></td>
+                <td><span class="key-point">bookId, branchId, acquisitionDate</span></td>
+                <td>copyId</td>
+                <td>Insert into Book_Copy with status = 'available'. Generate new copy_id.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">updateCopyStatus(copyId, newStatus)</span></td>
+                <td><span class="key-point">copyId, newStatus</span></td>
+                <td>boolean</td>
+                <td>Update status in Book_Copy. Allowed transitions: available ↔ loaned, available ↔ reserved, loaned → available (when returned), available → lost, etc.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getAvailableCopies(bookId, branchId)</span></td>
+                <td><span class="key-point">bookId, branchId (optional)</span></td>
+                <td>list of copyId</td>
+                <td>SELECT copy_id FROM Book_Copy WHERE book_id = ? AND status = 'available' [AND branch_id = ?].</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">transferCopy(copyId, targetBranchId)</span></td>
+                <td><span class="key-point">copyId, targetBranchId</span></td>
+                <td>boolean</td>
+                <td>Update branch_id of that copy. Ensure copy is not currently loaned.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">removeCopy(copyId)</span></td>
+                <td><span class="key-point">copyId</span></td>
+                <td>boolean</td>
+                <td>Only if status = 'lost' or 'available' with no active loan. Delete or mark as discarded (add discarded flag).</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">addBranch(branchData)</span></td>
+                <td><span class="key-point">{name, location, phone}</span></td>
+                <td>branchId</td>
+                <td>Insert into Library_Branch.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getBranchInventory(branchId)</span></td>
+                <td><span class="key-point">branchId</span></td>
+                <td>list of {bookTitle, copyId, status}</td>
+                <td>Join Book_Copy + Book.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Inventory Service:</h3>
+        <ul>
+            <li>Use optimistic locking or row‑level locks when updating status to prevent double‑loaning (e.g., SELECT FOR UPDATE).</li>
+            <li>Create a stored procedure to atomically change status from ‘available’ to ‘loaned’ when issuing a book.</li>
+        </ul>
+    </div>
+
+    <h2>4. Circulation (Loan & Return) Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">loanBook(copyId, memberId, loanDate, dueDate)</span></td>
+                <td><span class="key-point">copyId, memberId, loanDate (default today), dueDate (calculated)</span></td>
+                <td>loanId</td>
+                <td>1. Check copy status = ‘available’. 2. Check member has no overdue fines > $10 (application rule). 3. Insert into Loan. 4. Update Book_Copy.status = ‘loaned’. 5. If there is a reservation for this book by another member, optionally create waiting list.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">returnBook(loanId, returnDate)</span></td>
+                <td><span class="key-point">loanId, returnDate (default today)</span></td>
+                <td>fineAmount (0 if no fine)</td>
+                <td>1. Get Loan record. 2. Update return_date = returnDate. 3. Compute overdue days: returnDate > due_date ? days late : 0. 4. If overdue, call calculateAndCreateFine(loanId, overdueDays). 5. Update Book_Copy.status = ‘available’. 6. If there are pending reservations for that book, change status to ‘reserved’ and notify next member.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">calculateAndCreateFine(loanId, overdueDays)</span></td>
+                <td><span class="key-point">loanId, overdueDays</span></td>
+                <td>fineId</td>
+                <td>Insert into Fine with amount = overdueDays * dailyFineRate (e.g., 0.50 per day). paid_status = FALSE.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">renewLoan(loanId, newDueDate)</span></td>
+                <td><span class="key-point">loanId, newDueDate</span></td>
+                <td>boolean</td>
+                <td>Allowed if no reservation pending on that book and not exceeding max renewals (e.g., 2). Update due_date = newDueDate.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getOverdueLoans(asOfDate)</span></td>
+                <td><span class="key-point">asOfDate</span></td>
+                <td>list of Loan objects</td>
+                <td>SELECT FROM Loan WHERE return_date IS NULL AND due_date < asOfDate.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getLoanHistory(copyId)</span></td>
+                <td><span class="key-point">copyId</span></td>
+                <td>list of Loan objects</td>
+                <td>All loans for a specific physical copy.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Circulation Service:</h3>
+        <ul>
+            <li>Use database transactions for loan and return: multiple updates (Loan insert + Book_Copy update) must be atomic.</li>
+            <li>Implement a queue or scheduler to automatically calculate fines daily (batch job).</li>
+            <li>Store dailyFineRate in a Settings table instead of hardcoding.</li>
+            <li>Use DATETIME for loan_date/due_date if you need hour precision.</li>
+        </ul>
+    </div>
+
+    <h2>5. Reservation Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">placeReservation(bookId, memberId, branchId, expirationDays)</span></td>
+                <td><span class="key-point">bookId, memberId, branchId, expirationDays (e.g., 7)</span></td>
+                <td>reservationId</td>
+                <td>1. Check member has no active reservations exceeding limit (e.g., 5). 2. Insert into Reservation with status='pending', expiration_date = today + expirationDays. 3. If any copy is available now, optionally auto‑fulfill.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">cancelReservation(reservationId)</span></td>
+                <td><span class="key-point">reservationId</span></td>
+                <td>boolean</td>
+                <td>Update status = 'cancelled'.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">fulfillReservation(reservationId, copyId)</span></td>
+                <td><span class="key-point">reservationId, copyId</span></td>
+                <td>boolean</td>
+                <td>1. Change Reservation.status = ‘fulfilled’. 2. Optionally create a loan for that member using that copy (or mark copy as ‘reserved’ until member picks up). 3. Notify member.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getPendingReservations(bookId)</span></td>
+                <td><span class="key-point">bookId</span></td>
+                <td>list of Reservation</td>
+                <td>Used to determine who gets the next available copy (ordered by reservation_date).</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">expireOldReservations(currentDate)</span></td>
+                <td><span class="key-point">currentDate</span></td>
+                <td>count expired</td>
+                <td>Batch job: update status = 'expired' where expiration_date < currentDate AND status='pending'.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Reservation Service:</h3>
+        <ul>
+            <li>Use a FIFO queue based on reservation_date for each book.</li>
+            <li>When a copy is returned, automatically check pending reservations and either notify or auto‑loan.</li>
+            <li>Consider a “pickup window” (e.g., 48 hours) after fulfillment before moving to next reservation.</li>
+        </ul>
+    </div>
+
+    <h2>6. Fine & Payment Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">getMemberTotalUnpaidFine(memberId)</span></td>
+                <td><span class="key-point">memberId</span></td>
+                <td>total amount</td>
+                <td>SUM of amount from Fine JOIN Loan WHERE Loan.member_id = ? AND Fine.paid_status = FALSE.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">payFine(fineId, paymentAmount)</span></td>
+                <td><span class="key-point">fineId, paymentAmount</span></td>
+                <td>boolean</td>
+                <td>If paymentAmount >= fine amount, set paid_status=TRUE and optionally store payment_date. If partial payment allowed (depends on policy), reduce amount and keep as unpaid.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">waiveFine(fineId, reason)</span></td>
+                <td><span class="key-point">fineId, reason</span></td>
+                <td>boolean</td>
+                <td>Administrative override: set paid_status=TRUE and record waiver reason.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getAllUnpaidFines(asOfDate)</span></td>
+                <td><span class="key-point">asOfDate</span></td>
+                <td>list of Fine objects</td>
+                <td>For reporting / batch reminders.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Fine Service:</h3>
+        <ul>
+            <li>Use a decimal(6,2) for currency; ensure rounding to nearest cent.</li>
+            <li>Avoid floating point errors: store in cents (integer) if preferred.</li>
+            <li>Add payment_transaction_id to track payments via external gateway.</li>
+        </ul>
+    </div>
+
+    <h2>7. Staff & Administrative Service</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Parameters</th>
+                <th>Returns</th>
+                <th>Logic Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="key-point">addStaff(staffData)</span></td>
+                <td><span class="key-point">{firstName, lastName, role, branchId}</span></td>
+                <td>staffId</td>
+                <td>Insert into Staff.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">authenticateStaff(staffId, password)</span></td>
+                <td><span class="key-point">staffId, password</span></td>
+                <td>boolean</td>
+                <td>Requires adding password_hash column to Staff (not in base schema).</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">getBranchReports(branchId, startDate, endDate)</span></td>
+                <td><span class="key-point">branchId, dateRange</span></td>
+                <td>report object</td>
+                <td>Statistics: total loans, popular books, revenue from fines, etc.</td>
+            </tr>
+            <tr>
+                <td><span class="key-point">runDatabaseBackup()</span></td>
+                <td><span class="key-point">none</span></td>
+                <td>boolean</td>
+                <td>External script or DBMS job.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="tips-section">
+        <h3>Tips for Staff Service:</h3>
+        <ul>
+            <li>Never store plain‑text passwords. Use bcrypt or Argon2.</li>
+            <li>Implement role‑based access control (e.g., role = ‘admin’, ‘librarian’, ‘assistant’).</li>
+        </ul>
+    </div>
+
+    <h2>Implementation Tips for All Methods (Backend)</h2>
+
+    <h3>A. Transaction Management</h3>
+    <p>Always use database transactions for operations that update multiple tables:</p>
+    <ul>
+        <li><span class="key-point">loanBook</span> (insert Loan + update Book_Copy)</li>
+        <li><span class="key-point">returnBook</span> (update Loan + update Book_Copy + insert Fine if overdue)</li>
+        <li><span class="key-point">placeReservation</span> (insert Reservation + optionally update Book_Copy status to ‘reserved’)</li>
+        <li><span class="key-point">payFine</span> (update Fine + potentially log payment)</li>
+    </ul>
+    <p>Example (Python/Psycopg2):</p>
+    <div class="code-block">with connection:
+    with connection.cursor() as cur:
+        cur.execute("UPDATE book_copy SET status = 'loaned' WHERE copy_id = %s", (copy_id,))
+        cur.execute("INSERT INTO loan (copy_id, member_id, loan_date, due_date) VALUES (%s,%s,%s,%s)",
+                    (copy_id, member_id, loan_date, due_date))</div>
+
+    <h3>B. Validation & Business Rules</h3>
+    <ul>
+        <li>Validate input parameters before touching the database (e.g., ISBN format, date ranges, non‑negative amounts).</li>
+        <li>Enforce constraints like “member cannot borrow if unpaid fines > $10” at the service layer, not just DB.</li>
+        <li>Use SQL constraints (CHECK, FOREIGN KEY, UNIQUE) as a second line of defense.</li>
+    </ul>
+
+    <h3>C. Performance Optimization</h3>
+    <ul>
+        <li>Create indexes on:
+            <ul>
+                <li><span class="key-point">Loan(member_id, return_date)</span> – for active loans queries.</li>
+                <li><span class="key-point">Loan(copy_id, loan_date)</span> – for history.</li>
+                <li><span class="key-point">Book_Copy(book_id, branch_id, status)</span> – for availability checks.</li>
+                <li><span class="key-point">Reservation(book_id, status, reservation_date)</span> – for queue processing.</li>
+                <li><span class="key-point">Fine(loan_id)</span> and <span class="key-point">Fine(paid_status)</span>.</li>
+            </ul>
+        </li>
+        <li>Use connection pooling (e.g., HikariCP, PgBouncer) to handle concurrent users.</li>
+        <li>Batch operations: e.g., expireOldReservations should update many rows with one SQL statement.</li>
+    </ul>
+
+    <h3>D. Error Handling & Logging</h3>
+    <ul>
+        <li>Define custom exceptions: <code>BookNotAvailableError</code>, <code>MemberBlockedError</code>, <code>FineMismatchError</code>.</li>
+        <li>Log every state change (loan, return, payment) to an audit table for legal/financial traceability.</li>
+    </ul>
+
+    <h3>E. API Design (if building REST endpoints)</h3>
+    <ul>
+        <li>Use standard HTTP methods and status codes:
+            <ul>
+                <li><span class="key-point">POST</span> /api/members → registerMember</li>
+                <li><span class="key-point">POST</span> /api/loans → loanBook</li>
+                <li><span class="key-point">PUT</span> /api/loans/{loanId}/return → returnBook</li>
+                <li><span class="key-point">GET</span> /api/books?title=... → searchBooks</li>
+                <li><span class="key-point">POST</span> /api/reservations → placeReservation</li>
+            </ul>
+        </li>
+        <li>Document with OpenAPI / Swagger.</li>
+    </ul>
+
+    <h3>F. Testing Strategy</h3>
+    <ul>
+        <li>Write unit tests for each service method (mocking the DB).</li>
+        <li>Write integration tests using a test database (e.g., H2, SQLite, or PostgreSQL with transactions rolled back).</li>
+        <li>Test edge cases: double loan of same copy, reservation expiry, fine calculation at DST boundaries.</li>
+    </ul>
+
+    <h3>G. Security</h3>
+    <ul>
+        <li>Never expose internal IDs directly in URLs without authorization checks (e.g., member can only access their own loans).</li>
+        <li>Use parameterized queries or ORM to prevent SQL injection.</li>
+        <li>Rate limit public endpoints (e.g., search) to prevent abuse.</li>
+    </ul>
+
+    <h3>H. Development Workflow Suggestion</h3>
+    <ol>
+        <li>Start with Member and Catalog services (read‑only).</li>
+        <li>Add Inventory (add copies, view available).</li>
+        <li>Implement Circulation (loan/return) – the core.</li>
+        <li>Add Reservation and Fine services.</li>
+        <li>Build admin Reports.</li>
+        <li>Write integration tests for each major user journey.</li>
+    </ol>
+
+</body>
+</html>

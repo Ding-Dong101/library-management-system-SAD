@@ -1,0 +1,6 @@
+{
+  "name": "Lexend Library System",
+  "description": "A spacious and minimalist full-stack Library Management System powered by PostgreSQL and Firebase Authentication, designed with elegant Lexend typography.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
